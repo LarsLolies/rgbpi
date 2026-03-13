@@ -7,8 +7,7 @@ import neopixel
 # ==========================================
 
 STRIP_CONFIG = {
-    0: {"pin": board.D18, "count": 30},
-    1: {"pin": board.D13, "count": 30},
+    18: {"board_pin": board.D18, "count": 1},
 }
 
 BRIGHTNESS = 0.5
@@ -21,31 +20,32 @@ PORT = 80
 
 class LEDStrip:
 
-    def __init__(self, pin, count, brightness):
+    def __init__(self, pin, gpio, count, brightness):
+        self.pin = pin          # board.D18 für neopixel
+        self.gpio = gpio        # 18 für API
+
         self.pixels = neopixel.NeoPixel(
             pin,
             count,
             brightness=brightness,
             auto_write=True
         )
+
         self.count = count
         self.r = 0
         self.g = 0
         self.b = 0
         self.state = "off"
 
-    # ---------- interne Hilfsmethode ----------
     def _clamp(self, value):
         return max(0, min(255, int(value)))
-
-    # ---------- öffentliche Methoden ----------
 
     def set_color(self, r, g, b):
         self.r = self._clamp(r)
         self.g = self._clamp(g)
         self.b = self._clamp(b)
 
-        self.pixels.fill((self.r, self.g, self.b))
+        self.pixels.fill((self.g, self.r, self.b))
         self.state = "on" if (self.r or self.g or self.b) else "off"
 
     def turn_off(self):
@@ -56,6 +56,7 @@ class LEDStrip:
 
         return {
             "state": self.state,
+            "pin": self.gpio,
             "r": self.r,
             "g": self.g,
             "b": self.b,
@@ -70,9 +71,10 @@ app = Flask(__name__)
 strips = {}
 
 def init_strips():
-    for strip_id, cfg in STRIP_CONFIG.items():
-        strips[strip_id] = LEDStrip(
-            cfg["pin"],
+    for gpio, cfg in STRIP_CONFIG.items():
+        strips[gpio] = LEDStrip(
+            cfg["board_pin"],
+            gpio,
             cfg["count"],
             BRIGHTNESS
         )
@@ -84,43 +86,61 @@ def init_strips():
 @app.route("/")
 def index():
     return jsonify({
-        "service": "Multi-Strip API (OOP)",
-        "available_strips": list(strips.keys())
+        "service": "Multi-Strip API",
+        "available_pins": list(strips.keys())
     })
 
 
-@app.route("/api/strip/<int:strip_id>", methods=["POST"])
-def set_strip(strip_id):
+@app.route("/api/strip/<int:pin>", methods=["POST"])
+def set_strip(pin):
 
-    if strip_id not in strips:
-        return jsonify({"error": "Invalid strip"}), 400
+    if pin not in strips:
+        return jsonify({"error": "Invalid GPIO pin"}), 400
 
     data = request.get_json()
+
     if not data:
-        return jsonify({"error": "Missing JSON"}), 400
+        return jsonify({"error": "Missing JSON body"}), 400
 
-    strip = strips[strip_id]
+    strip = strips[pin]
 
-    if "r" in data and "g" in data and "b" in data:
-        strip.set_color(data["r"], data["g"], data["b"])
-        return jsonify({"success": True})
+    state = data.get("state")
 
-    if data.get("state") == "off":
+    # LED ausschalten
+    if state == "off":
         strip.turn_off()
         return jsonify({"success": True})
 
-    return jsonify({"error": "Invalid request"}), 400
+    # LED einschalten mit Farbe
+    if state == "on":
+
+        r = data.get("r", strip.r)
+        g = data.get("g", strip.g)
+        b = data.get("b", strip.b)
+
+        strip.set_color(r, g, b)
+
+        return jsonify({
+            "success": True,
+            "pin": pin,
+            "state": "on",
+            "r": r,
+            "g": g,
+            "b": b
+        })
+
+    return jsonify({"error": "Invalid state"}), 400
 
 
-@app.route("/api/strip/<int:strip_id>/status", methods=["GET"])
-def get_strip_status(strip_id):
+@app.route("/api/strip/<int:pin>/status", methods=["GET"])
+def get_strip_status(pin):
 
-    if strip_id not in strips:
-        return jsonify({"error": "Invalid strip"}), 400
+    if pin not in strips:
+        return jsonify({"error": "Invalid GPIO pin"}), 400
 
     return jsonify({
-        "strip": strip_id,
-        **strips[strip_id].get_status()
+        "pin": pin,
+        **strips[pin].get_status()
     })
 
 # ==========================================
