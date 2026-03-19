@@ -12,8 +12,9 @@ LED_PIN = board.D18
 BRIGHTNESS = 0.5
 
 STRIPS = {
-    0: 2,
-    1: 1
+    0: 3,
+    1: 1,
+    2: 1,
 }
 
 HOST = "0.0.0.0"
