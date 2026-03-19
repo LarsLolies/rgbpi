@@ -87,8 +87,6 @@ def set_strip_color(strip_id, r, g, b):
     if strip_id not in strip_ranges:
         return False
 
-    stop_animation(strip_id)
-
     r, g, b = clamp(r), clamp(g), clamp(b)
     start, end = strip_ranges[strip_id]
 
