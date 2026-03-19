@@ -54,7 +54,7 @@ strip_states = {
         "g": 0,
         "b": 0,
         "state": "off",
-        "animation": None
+        "animations": []
     }
     for strip_id in STRIPS
 }
@@ -99,7 +99,7 @@ def set_strip_color(strip_id, r, g, b):
         "g": g,
         "b": b,
         "state": "on" if (r or g or b) else "off",
-        "animation": None
+         "animations": []
     }
 
     return True
@@ -112,7 +112,10 @@ def get_status(strip_id):
         return None
 
     s = strip_states[strip_id]
-    hex_color = "#{:02X}{:02X}{:02X}".format(s["r"], s["g"], s["b"])
+
+    hex_color = "#{:02X}{:02X}{:02X}".format(
+        s["r"], s["g"], s["b"]
+    )
 
     return {
         "strip": strip_id,
@@ -121,49 +124,52 @@ def get_status(strip_id):
         "g": s["g"],
         "b": s["b"],
         "hex": hex_color,
-        "animation": s["animation"]
+        "animations": s["animations"]  # 🔥 geändert!
     }
 
 # ==========================================
 # ANIMATION PRO STRIP
 # ==========================================
 
-def rainbow_cycle_strip(strip_id):
+def animation_loop(strip_id):
+
     start, end = strip_ranges[strip_id]
+    t = 0
 
-    while strip_states[strip_id]["animation"] == "rainbow":
-        for j in range(255):
-            if strip_states[strip_id]["animation"] != "rainbow":
-                break
+    while True:
 
-            for i in range(start, end):
-                pixels[i] = wheel((i + j) & 255)
+        animations = strip_states[strip_id]["animations"]
 
-            time.sleep(0.02)
+        if not animations:
+            time.sleep(0.1)
+            continue
 
-def start_animation(strip_id, mode="rainbow"):
+        for i in range(start, end):
 
-    if strip_id not in STRIPS:
-        return False
+            r, g, b = strip_states[strip_id]["r"], strip_states[strip_id]["g"], strip_states[strip_id]["b"]
 
-    stop_animation(strip_id)
+            # Rainbow überschreibt Farbe
+            if "rainbow" in animations:
+                r, g, b = wheel((i + t) & 255)
 
-    strip_states[strip_id]["animation"] = mode
+            # Brightness Flicker
+            if "brightness_flicker" in animations:
+                factor = 0.5 + (0.5 * (i + t) % 2)
+                r = int(r * factor)
+                g = int(g * factor)
+                b = int(b * factor)
 
-    thread = threading.Thread(
-        target=rainbow_cycle_strip,
-        args=(strip_id,)
-    )
+            # Color Flicker
+            if "color_flicker" in animations:
+                if (i + t) % 10 == 0:
+                    r, g, b = (255, 255, 255)
 
-    animation_threads[strip_id] = thread
-    thread.start()
+            pixels[i] = (r, g, b)
 
-    return True
+        t += 1
+        time.sleep(0.05)
 
-def stop_animation(strip_id):
-    if strip_id in strip_states:
-        strip_states[strip_id]["animation"] = None
-
+ 
 # ==========================================
 # FLASK API
 # ==========================================
@@ -207,22 +213,31 @@ def api_status(strip_id):
 
     return jsonify(status)
 
-@app.route("/api/strip/<int:strip_id>/animation", methods=["POST"])
-def api_animation(strip_id):
+
+
+
+@app.route("/api/strip/<int:strip_id>/animation/add", methods=["POST"])
+def add_animation(strip_id):
 
     data = request.get_json()
-    mode = data.get("mode", "rainbow")
+    anim = data.get("animation")
 
-    if start_animation(strip_id, mode):
-        return jsonify({"status": "started", "mode": mode})
+    if anim not in strip_states[strip_id]["animations"]:
+        strip_states[strip_id]["animations"].append(anim)
 
-    return jsonify({"error": "Invalid strip"}), 400
+    return jsonify({"animations": strip_states[strip_id]["animations"]})
 
-@app.route("/api/strip/<int:strip_id>/animation/stop", methods=["POST"])
-def api_stop_animation(strip_id):
 
-    stop_animation(strip_id)
-    return jsonify({"status": "stopped"})
+@app.route("/api/strip/<int:strip_id>/animation/remove", methods=["POST"])
+def remove_animation(strip_id):
+
+    data = request.get_json()
+    anim = data.get("animation")
+
+    if anim in strip_states[strip_id]["animations"]:
+        strip_states[strip_id]["animations"].remove(anim)
+
+    return jsonify({"animations": strip_states[strip_id]["animations"]})
 
 # ==========================================
 # START
