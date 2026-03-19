@@ -42,7 +42,7 @@ pixels = neopixel.NeoPixel(
     TOTAL_LEDS,
     brightness=BRIGHTNESS,
     auto_write=True,
-    pixel_order=neopixel.GRB
+    pixel_order=neopixel.RGB
 )
 
 # ==========================================
