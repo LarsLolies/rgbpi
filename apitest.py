@@ -90,17 +90,17 @@ def setStrip2Green():
         print(f"Request Fehler: {e}")
 
 
-def addBrightnessFlickerStrip2():
-    """Fügt brightness_flicker Animation zu Strip 2 hinzu"""
+def addColorFlickerStrip2():
+    """Fügt color_flicker Animation zu Strip 2 hinzu"""
     try:
         full_url = url + "/strip/2/animation/add"
-        payload = {"animation": "brightness_flicker"}
+        payload = {"animation": "color_flicker"}
         print("POST Request an:", full_url, "mit Payload:", payload)
         response = requests.post(full_url, json=payload, timeout=5)
         print("Status Code:", response.status_code)
         print("Response:", response.text)
         response.raise_for_status()
-        print("brightness_flicker Animation auf Strip 2 gestartet!")
+        print("color_flicker Animation auf Strip 2 gestartet!")
 
     except requests.exceptions.RequestException as e:
         print(f"Request Fehler: {e}")
@@ -127,8 +127,8 @@ if __name__ == "__main__":
     setStrip2Green()
     
     # brightness_flicker auf Strip 2
-    print("\n--- Starte brightness_flicker auf Strip 2 ---")
-    addBrightnessFlickerStrip2()
+    print("\n--- Starte color_flicker auf Strip 2 ---")
+    addColorFlickerStrip2()
     
     # Status nach allen Änderungen
     print("\n--- Status nach allen Aktionen ---")
