@@ -12,8 +12,8 @@ LED_PIN = board.D18
 BRIGHTNESS = 0.5
 
 STRIPS = {
-    0: 3,
-    1: 1,
+    0: 1,
+    1: 3,
     2: 1,
 }
 
