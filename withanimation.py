@@ -121,7 +121,7 @@ def animation_loop(strip_id):
             pixels[i] = (r, g, b)
 
         t += 1
-        time.sleep(0.05)
+        time.sleep(0.5)
 
 # ==========================================
 # ANIMATION STEUERUNG
