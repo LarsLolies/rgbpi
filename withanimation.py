@@ -104,7 +104,7 @@ def animation_loop(strip_id):
 
             # 🌈 Rainbow
             if "rainbow" in animations:
-                r, g, b = wheel((i + t) & 255)
+                r, g, b = wheel((i + 10*t) & 255)
 
             # 💡 Brightness Flicker
             if "brightness_flicker" in animations:
